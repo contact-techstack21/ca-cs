@@ -16,8 +16,12 @@ export default function ServiceDiscovery() {
     queryKey: ['/api/professionals', selectedSpecialization, selectedCity],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (selectedSpecialization) params.append('specialization', selectedSpecialization);
-      if (selectedCity) params.append('city', selectedCity);
+      if (selectedSpecialization && selectedSpecialization !== 'all') {
+        params.append('specialization', selectedSpecialization);
+      }
+      if (selectedCity && selectedCity !== 'all') {
+        params.append('city', selectedCity);
+      }
       
       const response = await fetch(`/api/professionals?${params}`);
       if (!response.ok) throw new Error('Failed to fetch professionals');
@@ -73,7 +77,7 @@ export default function ServiceDiscovery() {
                     <SelectValue placeholder="All Specializations" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Specializations</SelectItem>
+                    <SelectItem value="all">All Specializations</SelectItem>
                     <SelectItem value="Tax Planning">Tax Planning</SelectItem>
                     <SelectItem value="GST Returns">GST Returns</SelectItem>
                     <SelectItem value="Company Law">Company Law</SelectItem>
@@ -88,7 +92,7 @@ export default function ServiceDiscovery() {
                     <SelectValue placeholder="All Cities" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Cities</SelectItem>
+                    <SelectItem value="all">All Cities</SelectItem>
                     <SelectItem value="Mumbai">Mumbai</SelectItem>
                     <SelectItem value="Delhi">Delhi</SelectItem>
                     <SelectItem value="Bangalore">Bangalore</SelectItem>
