@@ -77,10 +77,7 @@ export class DatabaseStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values({
-        ...insertUser,
-        createdAt: new Date(),
-      })
+      .values(insertUser)
       .returning();
     return user;
   }
@@ -108,10 +105,7 @@ export class DatabaseStorage implements IStorage {
   async createProfessional(insertProfessional: InsertProfessional): Promise<Professional> {
     const [professional] = await db
       .insert(professionals)
-      .values({
-        ...insertProfessional,
-        createdAt: new Date(),
-      })
+      .values(insertProfessional)
       .returning();
     return professional;
   }
@@ -142,10 +136,7 @@ export class DatabaseStorage implements IStorage {
   async createService(insertService: InsertService): Promise<Service> {
     const [service] = await db
       .insert(services)
-      .values({
-        ...insertService,
-        createdAt: new Date(),
-      })
+      .values(insertService)
       .returning();
     return service;
   }
@@ -167,10 +158,7 @@ export class DatabaseStorage implements IStorage {
   async createBooking(insertBooking: InsertBooking): Promise<Booking> {
     const [booking] = await db
       .insert(bookings)
-      .values({
-        ...insertBooking,
-        createdAt: new Date(),
-      })
+      .values(insertBooking)
       .returning();
     return booking;
   }
@@ -201,10 +189,7 @@ export class DatabaseStorage implements IStorage {
   async createMessage(insertMessage: InsertMessage): Promise<Message> {
     const [message] = await db
       .insert(messages)
-      .values({
-        ...insertMessage,
-        sentAt: new Date(),
-      })
+      .values(insertMessage)
       .returning();
     return message;
   }
@@ -212,7 +197,7 @@ export class DatabaseStorage implements IStorage {
   async getMessagesByBooking(bookingId: string): Promise<Message[]> {
     const result = await db.select().from(messages)
       .where(eq(messages.bookingId, bookingId));
-    return result.sort((a, b) => a.sentAt.getTime() - b.sentAt.getTime());
+    return result.sort((a, b) => (a.sentAt?.getTime() || 0) - (b.sentAt?.getTime() || 0));
   }
 
   // Requirement operations
@@ -224,10 +209,7 @@ export class DatabaseStorage implements IStorage {
   async createRequirement(insertRequirement: InsertRequirement): Promise<Requirement> {
     const [requirement] = await db
       .insert(requirements)
-      .values({
-        ...insertRequirement,
-        createdAt: new Date(),
-      })
+      .values(insertRequirement)
       .returning();
     return requirement;
   }

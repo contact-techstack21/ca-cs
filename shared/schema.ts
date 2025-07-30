@@ -29,6 +29,7 @@ export const professionals = pgTable("professionals", {
   kycStatus: text("kyc_status").default('pending').$type<'pending' | 'approved' | 'rejected'>(),
   kycDocuments: jsonb("kyc_documents").$type<{pan?: string, aadhaar?: string, certificate?: string}>(),
   availability: jsonb("availability").$type<{[key: string]: string[]}>(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const services = pgTable("services", {
@@ -40,6 +41,7 @@ export const services = pgTable("services", {
   price: integer("price").notNull(),
   duration: integer("duration"), // in minutes
   isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const bookings = pgTable("bookings", {
@@ -83,10 +85,12 @@ export const insertUserSchema = createInsertSchema(users).omit({
 
 export const insertProfessionalSchema = createInsertSchema(professionals).omit({
   id: true,
+  createdAt: true,
 });
 
 export const insertServiceSchema = createInsertSchema(services).omit({
   id: true,
+  createdAt: true,
 });
 
 export const insertBookingSchema = createInsertSchema(bookings).omit({

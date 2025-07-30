@@ -22,7 +22,6 @@ export async function seedDatabase() {
         name: "System Admin",
         phone: "+91 9876543210",
         isVerified: true,
-        createdAt: new Date(),
       })
       .returning();
 
@@ -36,7 +35,6 @@ export async function seedDatabase() {
         name: "ABC Private Limited",
         phone: "+91 9876543213",
         isVerified: true,
-        createdAt: new Date(),
       })
       .returning();
 
@@ -49,7 +47,6 @@ export async function seedDatabase() {
         name: "CA Rajesh Kumar",
         phone: "+91 9876543211",
         isVerified: true,
-        createdAt: new Date(),
       },
       {
         email: "priya.sharma@email.com",
@@ -58,7 +55,6 @@ export async function seedDatabase() {
         name: "CS Priya Sharma",
         phone: "+91 9876543212",
         isVerified: true,
-        createdAt: new Date(),
       },
       {
         email: "vikash.singh@email.com",
@@ -67,7 +63,6 @@ export async function seedDatabase() {
         name: "CA Vikash Singh",
         phone: "+91 9876543214",
         isVerified: true,
-        createdAt: new Date(),
       },
     ];
 
@@ -97,7 +92,6 @@ export async function seedDatabase() {
           thursday: ["10:00", "14:00", "16:00"],
           friday: ["10:00", "14:00", "16:00"],
         },
-        createdAt: new Date(),
       },
       {
         userId: insertedProfessionalUsers[1].id,
@@ -118,7 +112,6 @@ export async function seedDatabase() {
           thursday: ["09:00", "11:00", "15:00"],
           friday: ["09:00", "11:00", "15:00"],
         },
-        createdAt: new Date(),
       },
       {
         userId: insertedProfessionalUsers[2].id,
@@ -139,7 +132,6 @@ export async function seedDatabase() {
           thursday: ["11:00", "15:00", "17:00"],
           friday: ["11:00", "15:00", "17:00"],
         },
-        createdAt: new Date(),
       },
     ];
 
