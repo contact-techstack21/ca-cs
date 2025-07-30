@@ -10,9 +10,17 @@ import {
   type Message,
   type InsertMessage,
   type Requirement,
-  type InsertRequirement
+  type InsertRequirement,
+  users,
+  professionals,
+  services,
+  bookings,
+  messages,
+  requirements
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { db } from "./db";
+import { eq, and, like, or } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -54,358 +62,183 @@ export interface IStorage {
   getAllRequirements(): Promise<Requirement[]>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User> = new Map();
-  private professionals: Map<string, Professional> = new Map();
-  private services: Map<string, Service> = new Map();
-  private bookings: Map<string, Booking> = new Map();
-  private messages: Map<string, Message> = new Map();
-  private requirements: Map<string, Requirement> = new Map();
-
-  constructor() {
-    this.seedData();
-  }
-
-  private seedData() {
-    // Seed admin user
-    const adminId = randomUUID();
-    const admin: User = {
-      id: adminId,
-      email: "admin@complianceconnect.com",
-      password: "$2b$10$hash", // In real app, would be properly hashed
-      role: "admin",
-      name: "System Admin",
-      phone: "+91 9876543210",
-      isVerified: true,
-      createdAt: new Date(),
-    };
-    this.users.set(adminId, admin);
-
-    // Seed some professional users and their profiles
-    const professionals = [
-      {
-        user: {
-          email: "rajesh.kumar@email.com",
-          password: "$2b$10$hash",
-          role: "professional" as const,
-          name: "CA Rajesh Kumar",
-          phone: "+91 9876543211",
-          isVerified: true,
-        },
-        professional: {
-          registrationNumber: "CA123456",
-          qualification: "CA" as const,
-          specializations: ["Tax Planning", "GST Returns", "Audit"],
-          experience: 15,
-          city: "Mumbai",
-          bio: "Experienced CA with 15+ years in tax planning and GST compliance",
-          hourlyRate: 2000,
-          rating: 49,
-          totalReviews: 127,
-          kycStatus: "approved" as const,
-          availability: {
-            "monday": ["10:00", "14:00", "16:00"],
-            "tuesday": ["10:00", "14:00", "16:00"],
-            "wednesday": ["10:00", "14:00", "16:00"],
-            "thursday": ["10:00", "14:00", "16:00"],
-            "friday": ["10:00", "14:00", "16:00"],
-          }
-        }
-      },
-      {
-        user: {
-          email: "priya.sharma@email.com",
-          password: "$2b$10$hash",
-          role: "professional" as const,
-          name: "CS Priya Sharma",
-          phone: "+91 9876543212",
-          isVerified: true,
-        },
-        professional: {
-          registrationNumber: "CS789012",
-          qualification: "CS" as const,
-          specializations: ["Company Law", "Compliance", "ROC Filing"],
-          experience: 12,
-          city: "Delhi",
-          bio: "Expert CS specializing in company law and regulatory compliance",
-          hourlyRate: 3500,
-          rating: 48,
-          totalReviews: 89,
-          kycStatus: "approved" as const,
-          availability: {
-            "monday": ["09:00", "11:00", "15:00"],
-            "tuesday": ["09:00", "11:00", "15:00"],
-            "wednesday": ["09:00", "11:00", "15:00"],
-            "thursday": ["09:00", "11:00", "15:00"],
-            "friday": ["09:00", "11:00", "15:00"],
-          }
-        }
-      },
-      {
-        user: {
-          email: "vikash.singh@email.com",
-          password: "$2b$10$hash",
-          role: "professional" as const,
-          name: "CA Vikash Singh",
-          phone: "+91 9876543213",
-          isVerified: true,
-        },
-        professional: {
-          registrationNumber: "CA345678",
-          qualification: "CA" as const,
-          specializations: ["Startup CFO", "Financial Planning", "Investment"],
-          experience: 8,
-          city: "Bangalore",
-          bio: "Young CA focused on startup financial management and investment advisory",
-          hourlyRate: 1500,
-          rating: 47,
-          totalReviews: 64,
-          kycStatus: "pending" as const,
-          availability: {
-            "monday": ["10:00", "14:00", "18:00"],
-            "tuesday": ["10:00", "14:00", "18:00"],
-            "wednesday": ["10:00", "14:00", "18:00"],
-            "thursday": ["10:00", "14:00", "18:00"],
-            "friday": ["10:00", "14:00", "18:00"],
-          }
-        }
-      }
-    ];
-
-    professionals.forEach(({ user, professional }) => {
-      const userId = randomUUID();
-      const professionalId = randomUUID();
-      
-      const fullUser: User = {
-        id: userId,
-        createdAt: new Date(),
-        ...user,
-      };
-      
-      const fullProfessional: Professional = {
-        id: professionalId,
-        userId,
-        ...professional,
-      };
-
-      this.users.set(userId, fullUser);
-      this.professionals.set(professionalId, fullProfessional);
-
-      // Add some services for each professional
-      const services = [
-        {
-          title: "Tax Consultation",
-          description: "Comprehensive tax planning and advisory services",
-          category: "Tax",
-          price: professional.hourlyRate,
-          duration: 60,
-        },
-        {
-          title: "GST Return Filing",
-          description: "Monthly GST return preparation and filing",
-          category: "GST",
-          price: professional.hourlyRate * 2,
-          duration: 120,
-        }
-      ];
-
-      services.forEach(service => {
-        const serviceId = randomUUID();
-        const fullService: Service = {
-          id: serviceId,
-          professionalId,
-          isActive: true,
-          ...service,
-        };
-        this.services.set(serviceId, fullService);
-      });
-    });
-
-    // Seed a business user
-    const businessId = randomUUID();
-    const businessUser: User = {
-      id: businessId,
-      email: "business@example.com",
-      password: "$2b$10$hash",
-      role: "business",
-      name: "Business Owner",
-      phone: "+91 9876543214",
-      isVerified: true,
-      createdAt: new Date(),
-    };
-    this.users.set(businessId, businessUser);
-  }
-
+export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.email === email);
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { 
-      ...insertUser, 
-      id,
-      createdAt: new Date(),
-    };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values({
+        ...insertUser,
+        createdAt: new Date(),
+      })
+      .returning();
     return user;
   }
 
   async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
-    const user = this.users.get(id);
-    if (!user) return undefined;
-    
-    const updatedUser = { ...user, ...updates };
-    this.users.set(id, updatedUser);
-    return updatedUser;
+    const [user] = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
   }
 
   // Professional operations
   async getProfessional(id: string): Promise<Professional | undefined> {
-    return this.professionals.get(id);
+    const [professional] = await db.select().from(professionals).where(eq(professionals.id, id));
+    return professional || undefined;
   }
 
   async getProfessionalByUserId(userId: string): Promise<Professional | undefined> {
-    return Array.from(this.professionals.values()).find(prof => prof.userId === userId);
+    const [professional] = await db.select().from(professionals).where(eq(professionals.userId, userId));
+    return professional || undefined;
   }
 
   async createProfessional(insertProfessional: InsertProfessional): Promise<Professional> {
-    const id = randomUUID();
-    const professional: Professional = { ...insertProfessional, id };
-    this.professionals.set(id, professional);
+    const [professional] = await db
+      .insert(professionals)
+      .values({
+        ...insertProfessional,
+        createdAt: new Date(),
+      })
+      .returning();
     return professional;
   }
 
   async updateProfessional(id: string, updates: Partial<Professional>): Promise<Professional | undefined> {
-    const professional = this.professionals.get(id);
-    if (!professional) return undefined;
-    
-    const updatedProfessional = { ...professional, ...updates };
-    this.professionals.set(id, updatedProfessional);
-    return updatedProfessional;
+    const [professional] = await db
+      .update(professionals)
+      .set(updates)
+      .where(eq(professionals.id, id))
+      .returning();
+    return professional || undefined;
   }
 
   async getAllProfessionals(): Promise<Professional[]> {
-    return Array.from(this.professionals.values());
+    return await db.select().from(professionals);
   }
 
   async getProfessionalsBySpecialization(specialization: string): Promise<Professional[]> {
-    return Array.from(this.professionals.values()).filter(prof => 
-      prof.specializations?.includes(specialization)
-    );
+    return await db.select().from(professionals).where(like(professionals.specializations, `%${specialization}%`));
   }
 
   // Service operations
   async getService(id: string): Promise<Service | undefined> {
-    return this.services.get(id);
+    const [service] = await db.select().from(services).where(eq(services.id, id));
+    return service || undefined;
   }
 
   async createService(insertService: InsertService): Promise<Service> {
-    const id = randomUUID();
-    const service: Service = { ...insertService, id, isActive: true };
-    this.services.set(id, service);
+    const [service] = await db
+      .insert(services)
+      .values({
+        ...insertService,
+        createdAt: new Date(),
+      })
+      .returning();
     return service;
   }
 
   async getServicesByProfessional(professionalId: string): Promise<Service[]> {
-    return Array.from(this.services.values()).filter(service => 
-      service.professionalId === professionalId && service.isActive
-    );
+    return await db.select().from(services).where(eq(services.professionalId, professionalId));
   }
 
   async getAllServices(): Promise<Service[]> {
-    return Array.from(this.services.values()).filter(service => service.isActive);
+    return await db.select().from(services);
   }
 
   // Booking operations
   async getBooking(id: string): Promise<Booking | undefined> {
-    return this.bookings.get(id);
+    const [booking] = await db.select().from(bookings).where(eq(bookings.id, id));
+    return booking || undefined;
   }
 
   async createBooking(insertBooking: InsertBooking): Promise<Booking> {
-    const id = randomUUID();
-    const booking: Booking = { 
-      ...insertBooking, 
-      id,
-      createdAt: new Date(),
-    };
-    this.bookings.set(id, booking);
+    const [booking] = await db
+      .insert(bookings)
+      .values({
+        ...insertBooking,
+        createdAt: new Date(),
+      })
+      .returning();
     return booking;
   }
 
   async getBookingsByBusiness(businessId: string): Promise<Booking[]> {
-    return Array.from(this.bookings.values()).filter(booking => 
-      booking.businessId === businessId
-    );
+    return await db.select().from(bookings).where(eq(bookings.businessId, businessId));
   }
 
   async getBookingsByProfessional(professionalId: string): Promise<Booking[]> {
-    return Array.from(this.bookings.values()).filter(booking => 
-      booking.professionalId === professionalId
-    );
+    return await db.select().from(bookings).where(eq(bookings.professionalId, professionalId));
   }
 
   async updateBooking(id: string, updates: Partial<Booking>): Promise<Booking | undefined> {
-    const booking = this.bookings.get(id);
-    if (!booking) return undefined;
-    
-    const updatedBooking = { ...booking, ...updates };
-    this.bookings.set(id, updatedBooking);
-    return updatedBooking;
+    const [booking] = await db
+      .update(bookings)
+      .set(updates)
+      .where(eq(bookings.id, id))
+      .returning();
+    return booking || undefined;
   }
 
   // Message operations
   async getMessage(id: string): Promise<Message | undefined> {
-    return this.messages.get(id);
+    const [message] = await db.select().from(messages).where(eq(messages.id, id));
+    return message || undefined;
   }
 
   async createMessage(insertMessage: InsertMessage): Promise<Message> {
-    const id = randomUUID();
-    const message: Message = { 
-      ...insertMessage, 
-      id,
-      sentAt: new Date(),
-    };
-    this.messages.set(id, message);
+    const [message] = await db
+      .insert(messages)
+      .values({
+        ...insertMessage,
+        sentAt: new Date(),
+      })
+      .returning();
     return message;
   }
 
   async getMessagesByBooking(bookingId: string): Promise<Message[]> {
-    return Array.from(this.messages.values())
-      .filter(message => message.bookingId === bookingId)
-      .sort((a, b) => a.sentAt.getTime() - b.sentAt.getTime());
+    const result = await db.select().from(messages)
+      .where(eq(messages.bookingId, bookingId));
+    return result.sort((a, b) => a.sentAt.getTime() - b.sentAt.getTime());
   }
 
   // Requirement operations
   async getRequirement(id: string): Promise<Requirement | undefined> {
-    return this.requirements.get(id);
+    const [requirement] = await db.select().from(requirements).where(eq(requirements.id, id));
+    return requirement || undefined;
   }
 
   async createRequirement(insertRequirement: InsertRequirement): Promise<Requirement> {
-    const id = randomUUID();
-    const requirement: Requirement = { 
-      ...insertRequirement, 
-      id,
-      createdAt: new Date(),
-    };
-    this.requirements.set(id, requirement);
+    const [requirement] = await db
+      .insert(requirements)
+      .values({
+        ...insertRequirement,
+        createdAt: new Date(),
+      })
+      .returning();
     return requirement;
   }
 
   async getRequirementsByBusiness(businessId: string): Promise<Requirement[]> {
-    return Array.from(this.requirements.values()).filter(req => 
-      req.businessId === businessId
-    );
+    return await db.select().from(requirements).where(eq(requirements.businessId, businessId));
   }
 
   async getAllRequirements(): Promise<Requirement[]> {
-    return Array.from(this.requirements.values());
+    return await db.select().from(requirements);
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

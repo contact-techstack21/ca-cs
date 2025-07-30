@@ -26,10 +26,12 @@ Preferred communication style: Simple, everyday language.
 - **Session Management**: Express sessions with PostgreSQL storage
 
 ### Database Design
-- **Primary Database**: PostgreSQL
+- **Primary Database**: PostgreSQL (Production Database Integrated)
 - **Connection**: Neon Database serverless PostgreSQL
 - **Schema Management**: Drizzle Kit for migrations and schema management
 - **Type Safety**: Drizzle-Zod integration for runtime type validation
+- **Data Storage**: DatabaseStorage class replaces in-memory storage
+- **Auto-seeding**: Development database automatically seeded with demo data
 
 ## Key Components
 
